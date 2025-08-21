@@ -234,5 +234,51 @@ namespace TsrmWebApi.Security.AuthService
 
             return await _tokenGenerator.IidentityTokenRefresh(userName, userId);
         }
+
+        public async Task<P_EmployeeDetails?> GetUserLoginFull(string userName, string password, decimal projectId)
+        {
+            if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
+                return null;
+
+            await using var connection = new OracleConnection(_ModelContext.Database.GetDbConnection().ConnectionString);
+            await connection.OpenAsync();
+
+            await using var command = new OracleCommand("PRC_WEB_USER_LOGIN_FULL", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add("p_empid", OracleDbType.Varchar2).Value = userName;
+            command.Parameters.Add("p_password", OracleDbType.Varchar2).Value = password;
+            command.Parameters.Add("p_projectid", OracleDbType.Decimal).Value = projectId;
+            command.Parameters.Add("p_cur", OracleDbType.RefCursor).Direction = ParameterDirection.Output;
+
+            await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
+
+            if (await reader.ReadAsync())
+            {
+                var roles = new List<int>();
+                if (!reader.IsDBNull(reader.GetOrdinal("Users_Role")))
+                {
+                    string roleString = reader.GetString(reader.GetOrdinal("Users_Role"));
+                    roles = roleString
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(r => int.TryParse(r.Trim(), out int parsed) ? parsed : 0)
+                        .Where(r => r != 0)
+                        .ToList();
+                }
+
+                return new P_EmployeeDetails
+                {
+                    Employee_ID = reader.GetInt32(reader.GetOrdinal("emp_id")),
+                    Employee_Code = reader.GetString(reader.GetOrdinal("emp_no")),
+                    Employee_Name = reader.GetString(reader.GetOrdinal("full_name")),
+                    Unit_ID = reader.GetInt32(reader.GetOrdinal("comp_ID")),
+                    Users_Role = roles
+                };
+            }
+
+            return null;
+        }
     }
 }

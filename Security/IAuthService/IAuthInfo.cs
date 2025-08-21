@@ -11,5 +11,7 @@ namespace TsrmWebApi.Security.IAuthService
         public Task<P_EmployeeDetails> IUserInfobyUserEnroll(int UserEnroll);
         public Task<bool> ValidateRefreshToken(string refreshToken, string userName);
         public Task<TokenResponseModel> RefreshAccessToken(string refreshToken, string userName, string userId);
+
+        Task<P_EmployeeDetails?> GetUserLoginFull(string userName, string password, decimal projectId);
     }
 }

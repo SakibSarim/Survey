@@ -25,8 +25,9 @@ namespace TsrmWebApi.Security.Controllers
             _logger = logger;
         }
 
-        [HttpPost]
-        [Route("UserLogin")]
+        // [HttpPost]
+        // [Route("UserLogin")]
+        [HttpPost("UserLoginValid")]
         public async Task<ActionResult<MessegeStatus>> UserLogin(P_LoginUP login)
         {
             var messageStatus = new MessegeStatus();
@@ -178,6 +179,86 @@ namespace TsrmWebApi.Security.Controllers
             }
 
             return Ok(messageStatus);
+        }
+
+
+        [AllowAnonymous]
+        [HttpPost("UserLogin")]
+
+        public async Task<ActionResult<MessegeStatus>> UserLoginValid([FromBody] P_LoginUP login)
+        {
+            try
+            {
+                var userInfo = await _authInfo.GetUserLoginFull(
+                    login.UserName?.Trim(),
+                    login.Password?.Trim(),
+                    login.ProjectID
+                );
+
+                if (userInfo == null)
+                {
+                    return Ok(new MessegeStatus
+                    {
+                        Status = false,
+                        Code = 401,
+                        Message = "Invalid username or password"
+                    });
+                }
+
+
+                var authResult = await _tokenGenerator.IidentityToken(
+                    userInfo.Employee_Name,  // username for token
+                    userInfo.Employee_ID.ToString() // userId as string
+                );
+
+                if (authResult == null || !authResult.Success)
+                {
+                    return Ok(new MessegeStatus
+                    {
+                        Status = false,
+                        Code = 500,
+                        Message = "Token generation failed",
+                        Data = authResult
+                    });
+                }
+
+
+                Response.Cookies.Append("AuthToken", authResult.Token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.Now.AddSeconds(authResult.expires_in)
+                });
+
+
+                Response.Cookies.Append("RefreshToken", authResult.RefreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.Now.AddDays(7)
+                });
+
+                return Ok(new MessegeStatus
+                {
+                    Status = true,
+                    Code = 200,
+                    Message = "Successfully Logged In",
+                    Data = authResult,
+                    Info = userInfo
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Login error for user: {User}", login?.UserName);
+                return Ok(new MessegeStatus
+                {
+                    Status = false,
+                    Code = 500,
+                    Message = "An error occurred during login"
+                });
+            }
         }
 
     }

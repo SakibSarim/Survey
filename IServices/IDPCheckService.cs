@@ -16,5 +16,8 @@ namespace TsrmWebApi.IServices
         Task<IEnumerable<dynamic>> GetVisitReportAsync(DateTime fromDate, DateTime toDate, decimal enroll, int typeId);
 
         Task<string> GetVisitJsonAsync(int enrollId, DateTime fromDate, DateTime toDate);
+
+        Task <DataTable> GetVisitReportConditionAsync(DateTime from, DateTime to, decimal? zoneid, decimal? divisionid, decimal? regionid, decimal? teritoryid);
+
     }
 }

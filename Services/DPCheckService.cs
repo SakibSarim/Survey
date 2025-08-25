@@ -228,6 +228,37 @@ namespace TsrmWebApi.Services
             }
         }
 
+        public async Task<DataTable> GetVisitReportConditionAsync(DateTime from, DateTime to, decimal? zoneid, decimal? divisionid, decimal? regionid, decimal? teritoryid)
+        {
+            var dt = new DataTable();
+
+            using var conn = new OracleConnection(_connectionString);
+            await conn.OpenAsync(); // async open
+
+            using var cmd = new OracleCommand("PRC_GET_DISTRIBUTOR_POINT_VISIT_DATA_DYNAMIC", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.Add("p_fromdate", OracleDbType.Date).Value = from;
+            cmd.Parameters.Add("p_todate", OracleDbType.Date).Value = to;
+            cmd.Parameters.Add("p_zoneId", OracleDbType.Int32).Value = zoneid.HasValue ? (object)zoneid.Value : DBNull.Value;
+            cmd.Parameters.Add("p_divisionId", OracleDbType.Int32).Value = divisionid.HasValue ? (object)divisionid.Value : DBNull.Value;
+            cmd.Parameters.Add("p_regionId", OracleDbType.Int32).Value = regionid.HasValue ? (object)regionid.Value : DBNull.Value;
+            cmd.Parameters.Add("p_teritoryId", OracleDbType.Int32).Value = teritoryid.HasValue ? (object)teritoryid.Value : DBNull.Value;
+
+            var cursor = cmd.Parameters.Add("p_cur", OracleDbType.RefCursor);
+            cursor.Direction = ParameterDirection.Output;
+
+            // Wrap the synchronous Fill in Task.Run to avoid blocking
+            await Task.Run(() =>
+            {
+                using var da = new OracleDataAdapter(cmd);
+                da.Fill(dt);
+            });
+
+            return dt;
+        }
 
 
     }

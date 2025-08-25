@@ -7,6 +7,8 @@ using System.Net;
 using TsrmWebApi.IServices;
 using TsrmWebApi.Models.DataModels;
 using System.Text.Json;
+using System.Data;
+using ClosedXML.Excel;
 
 namespace TsrmWebApi.Controllers
 {
@@ -127,5 +129,38 @@ namespace TsrmWebApi.Controllers
             // Return raw JSON
             return Content(jsonResult, "application/json");
         }
+
+
+        [HttpGet("GetConditionalReport")]
+        [Authorize]
+        public async Task<IActionResult> GetJson([FromQuery] DateTime from, [FromQuery] DateTime to,decimal? zoneid, decimal? divisionid, decimal? regionid , decimal? teritoryid)
+        {
+            DataTable dt = await _tsrmService.GetVisitReportConditionAsync(from, to, zoneid, divisionid, regionid, teritoryid);
+            return Ok(dt);
+        }
+
+        [HttpGet("excel")]
+        [Authorize]
+        public async Task<IActionResult> GetExcel([FromQuery] DateTime from, [FromQuery] DateTime to, decimal? zoneid, decimal? divisionid, decimal? regionid, decimal? teritoryid)
+        {
+            // Call async service method
+            DataTable dt = await _tsrmService.GetVisitReportConditionAsync(from, to, zoneid, divisionid, regionid, teritoryid);
+
+            using var wb = new XLWorkbook();
+            wb.Worksheets.Add(dt, "VisitReport");
+
+            using var stream = new MemoryStream();
+            wb.SaveAs(stream);
+            stream.Position = 0;
+
+            return File(
+                stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"VisitReport_{from:yyyyMMdd}_{to:yyyyMMdd}.xlsx"
+            );
+        }
+
+
+
     }
 }

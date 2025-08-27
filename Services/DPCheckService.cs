@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.IO;
 using Oracle.ManagedDataAccess.Types;
 using System.Text;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 
 namespace TsrmWebApi.Services
@@ -290,9 +292,79 @@ namespace TsrmWebApi.Services
         //    return dt;
         //}
 
+        //public async Task<DataTable> GetVisitReportCondition(DateTime from, DateTime to)
+        //{
+        //    // Step 1: Row-wise fetch
+        //    var dt = new DataTable();
+
+        //    using var conn = new OracleConnection(_connectionString);
+        //    await conn.OpenAsync();
+
+        //    using var cmd = new OracleCommand("PRC_GET_DISTRIBUTOR_POINT_VISIT_DATA_DYNAMIC_2", conn)
+        //    {
+        //        CommandType = CommandType.StoredProcedure
+        //    };
+
+        //    cmd.Parameters.Add("p_fromdate", OracleDbType.Date).Value = from;
+        //    cmd.Parameters.Add("p_todate", OracleDbType.Date).Value = to;
+
+        //    var cursor = cmd.Parameters.Add("p_cur", OracleDbType.RefCursor);
+        //    cursor.Direction = ParameterDirection.Output;
+
+        //    using (var da = new OracleDataAdapter(cmd))
+        //    {
+        //        da.Fill(dt);
+        //    }
+
+        //    if (dt.Rows.Count == 0)
+        //        return dt; // empty table
+
+        //    // Step 2: Create pivoted DataTable
+        //    var pivotedDt = new DataTable();
+        //    pivotedDt.Columns.Add("VISIT_ID");
+        //    pivotedDt.Columns.Add("VISIT_DATE");
+        //    pivotedDt.Columns.Add("ENROLL");
+
+        //    // Get distinct question names
+        //    var questionNames = dt.AsEnumerable()
+        //                          .Select(r => r.Field<string>("QUESTION_NAME"))
+        //                          .Distinct();
+
+        //    foreach (var q in questionNames)
+        //        pivotedDt.Columns.Add(q);
+
+        //    // Step 3: Pivot rows
+        //    var grouped = dt.AsEnumerable()
+        //                    .GroupBy(r => new
+        //                    {
+        //                        VisitId = Convert.ToDecimal(r["VISIT_ID"]),
+        //                        VisitDate = r.Field<string>("VISIT_DATE"),
+        //                        Enroll = Convert.ToDecimal(r["ENROLL"])
+        //                    });
+
+        //    foreach (var g in grouped)
+        //    {
+        //        var newRow = pivotedDt.NewRow();
+        //        newRow["VISIT_ID"] = g.Key.VisitId;
+        //        newRow["VISIT_DATE"] = g.Key.VisitDate;
+        //        newRow["ENROLL"] = g.Key.Enroll;
+
+        //        foreach (var r in g)
+        //        {
+
+        //            var question = r["QUESTION_NAME"]?.ToString().Trim();
+        //            var answer = r["ANSW"] == DBNull.Value ? "" : r["ANSW"].ToString();
+        //            newRow[question] = answer;
+        //        }
+
+        //        pivotedDt.Rows.Add(newRow);
+        //    }
+
+        //    return pivotedDt;
+        //}
+
         public async Task<DataTable> GetVisitReportCondition(DateTime from, DateTime to)
         {
-            // Step 1: Row-wise fetch
             var dt = new DataTable();
 
             using var conn = new OracleConnection(_connectionString);
@@ -315,28 +387,25 @@ namespace TsrmWebApi.Services
             }
 
             if (dt.Rows.Count == 0)
-                return dt; // empty table
+                return dt;
 
-            // Step 2: Create pivoted DataTable
             var pivotedDt = new DataTable();
             pivotedDt.Columns.Add("VISIT_ID");
             pivotedDt.Columns.Add("VISIT_DATE");
             pivotedDt.Columns.Add("ENROLL");
 
-            // Get distinct question names
             var questionNames = dt.AsEnumerable()
-                                  .Select(r => r.Field<string>("QUESTION_NAME"))
+                                  .Select(r => Regex.Replace(r["QUESTION_NAME"]?.ToString() ?? "", @"\s+", " ").Trim())
                                   .Distinct();
 
             foreach (var q in questionNames)
                 pivotedDt.Columns.Add(q);
 
-            // Step 3: Pivot rows
             var grouped = dt.AsEnumerable()
                             .GroupBy(r => new
                             {
                                 VisitId = Convert.ToDecimal(r["VISIT_ID"]),
-                                VisitDate = r.Field<string>("VISIT_DATE"),
+                                VisitDate = DateTime.ParseExact(r["VISIT_DATE"].ToString(), "dd-MM-yyyy", CultureInfo.InvariantCulture),
                                 Enroll = Convert.ToDecimal(r["ENROLL"])
                             });
 
@@ -344,14 +413,18 @@ namespace TsrmWebApi.Services
             {
                 var newRow = pivotedDt.NewRow();
                 newRow["VISIT_ID"] = g.Key.VisitId;
-                newRow["VISIT_DATE"] = g.Key.VisitDate;
+                newRow["VISIT_DATE"] = g.Key.VisitDate.ToString("dd-MM-yyyy");
                 newRow["ENROLL"] = g.Key.Enroll;
 
                 foreach (var r in g)
                 {
-                    var question = r.Field<string>("QUESTION_NAME");
-                    var answer = r["ANSW"]?.ToString() ?? "";
-                    newRow[question] = answer;
+                    var question = Regex.Replace(r["QUESTION_NAME"]?.ToString() ?? "", @"\s+", " ").Trim();
+                    var answer = r["ANSW"] == DBNull.Value ? "" : r["ANSW"].ToString().Trim();
+
+                    if (!string.IsNullOrEmpty(newRow[question]?.ToString()))
+                        newRow[question] += ", " + answer;
+                    else
+                        newRow[question] = answer;
                 }
 
                 pivotedDt.Rows.Add(newRow);
@@ -359,8 +432,6 @@ namespace TsrmWebApi.Services
 
             return pivotedDt;
         }
-
-
 
     }
 }

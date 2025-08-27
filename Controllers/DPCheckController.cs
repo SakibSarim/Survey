@@ -161,6 +161,35 @@ namespace TsrmWebApi.Controllers
         }
 
 
+        [HttpGet("GetReport")]
+        [Authorize]
+        public async Task<IActionResult> GetTableReport([FromQuery] DateTime from, [FromQuery] DateTime to)
+        {
+            DataTable dt = await _tsrmService.GetVisitReportCondition(from, to);
+            return Ok(dt);
+        }
+
+        [HttpGet("exceldownload")]
+        [Authorize]
+        public async Task<IActionResult> GetExceldownload([FromQuery] DateTime from, [FromQuery] DateTime to)
+        {
+            // Call async service method
+            DataTable dt = await _tsrmService.GetVisitReportCondition(from, to);
+
+            using var wb = new XLWorkbook();
+            wb.Worksheets.Add(dt, "VisitReport");
+
+            using var stream = new MemoryStream();
+            wb.SaveAs(stream);
+            stream.Position = 0;
+
+            return File(
+                stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"VisitReport_{from:yyyyMMdd}_{to:yyyyMMdd}.xlsx"
+            );
+        }
+
 
     }
 }

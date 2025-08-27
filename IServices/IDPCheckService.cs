@@ -19,5 +19,7 @@ namespace TsrmWebApi.IServices
 
         Task <DataTable> GetVisitReportConditionAsync(DateTime from, DateTime to, decimal? zoneid, decimal? divisionid, decimal? regionid, decimal? teritoryid);
 
+        Task<DataTable> GetVisitReportCondition(DateTime from, DateTime to);
+
     }
 }

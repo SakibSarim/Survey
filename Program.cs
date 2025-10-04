@@ -22,7 +22,11 @@ builder.Services.AddScoped<IAuthInfo, AuthInfo>();
 builder.Services.AddScoped<I_Image, S_Image>();
 builder.Services.AddScoped<I_ConnectionResolver, S_ConnectionResolver>();
 builder.Services.AddScoped<IDPCheckService, DPCheckService>();
+builder.Services.AddScoped<IMarketVisitService, MarketVisitService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
+// Add Oracle Connection (from appsettings.json)
+//builder.Configuration.AddJsonFile("appsettings.json");
 builder.Services.AddLogging();
 
 // Configure Entity Framework with Oracle
@@ -138,7 +142,9 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Enable Swagger in Development & Production
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+//if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+// Enable Swagger only in Development
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>

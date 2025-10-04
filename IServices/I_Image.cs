@@ -10,5 +10,9 @@ namespace TsrmWebApi.IServices
         Task<string> SaveImageAsync(IFormFile imageFile, int id);
 
         FileStreamResult GetImageStream(string fileName);
+
+        Task<string> SaveImageMarketAsync(IFormFile imageFile, int id);
+
+        FileStreamResult GetImageMarketStream(string fileName);
     }
 }

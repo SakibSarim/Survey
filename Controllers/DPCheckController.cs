@@ -190,6 +190,45 @@ namespace TsrmWebApi.Controllers
             );
         }
 
+        // [HttpGet("exceldownload")]
+        //// [Authorize]
+        // public async Task<IActionResult> GetExceldownload([FromQuery] DateTime from, [FromQuery] DateTime to)
+        // {
+        //     // Call async service method
+        //     DataTable dt = await _tsrmService.GetVisitReportCondition(from, to);
+
+        //     using var wb = new XLWorkbook();
+        //     var ws = wb.Worksheets.Add(dt, "VisitReport");
+
+        //     // Insert a new row at the top for the header
+        //     ws.Row(1).InsertRowsAbove(2);
+
+        //     // Add From Date and To Date in header
+        //     ws.Cell("A1").Value = $"Visit Report";
+        //     ws.Cell("A2").Value = $"From: {from:dd-MMM-yyyy}   To: {to:dd-MMM-yyyy}";
+
+        //     // Style header
+        //     ws.Range("A1:B1").Merge().Style
+        //         .Font.SetBold()
+        //         .Font.SetFontSize(14)
+        //         .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+        //     ws.Range("A2:B2").Merge().Style
+        //         .Font.SetBold()
+        //         .Font.SetFontSize(12)
+        //         .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+        //     using var stream = new MemoryStream();
+        //     wb.SaveAs(stream);
+        //     stream.Position = 0;
+
+        //     return File(
+        //         stream.ToArray(),
+        //         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        //         $"VisitReport_{from:yyyyMMdd}_{to:yyyyMMdd}.xlsx"
+        //     );
+        // }
+
 
     }
 }

@@ -51,5 +51,40 @@ namespace TsrmWebApi.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+
+        [HttpPost("uploadmarket/{id}")]
+        [Authorize]
+        public async Task<IActionResult> UploadmarketImage(int id, IFormFile file)
+        {
+            try
+            {
+                var savedPath = await _imageUploadService.SaveImageMarketAsync(file, id);
+                return Ok(new { Message = "Image saved successfully", Path = savedPath });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
+        }
+
+
+        [HttpGet("ImageViewmarket/{fileName}")]
+        [Authorize]
+        public IActionResult GetImagemarket(string fileName)
+        {
+            try
+            {
+                return _imageUploadService.GetImageMarketStream(fileName);
+            }
+            catch (FileNotFoundException)
+            {
+                return NotFound($"Image '{fileName}' not found on server.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
 }

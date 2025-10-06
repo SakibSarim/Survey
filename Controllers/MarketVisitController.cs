@@ -41,7 +41,7 @@ namespace TsrmWebApi.Controllers
 
 
         [HttpPost("InsertMarketVisit")]
-        //[Authorize]
+        [Authorize]
         public async Task<IActionResult> InsertMarketVisit([FromBody] SurveyVisitRequest request)
         {
             if (request == null || request.Details == null)

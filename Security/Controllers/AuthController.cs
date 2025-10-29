@@ -261,5 +261,48 @@ namespace TsrmWebApi.Security.Controllers
             }
         }
 
+        [HttpPost("SignIn")]
+        public async Task<IActionResult> LoginFullHierarchy([FromBody] SignInAuth login)
+        {
+            var userInfo = await _authInfo.GetUserLoginFullHierarchy(login.UserName?.Trim(), login.Password?.Trim());
+
+            if (userInfo == null)
+                return Unauthorized(new { Status = false, Code = 401, Message = "Invalid credentials" });
+
+            var authResult = await _tokenGenerator.IidentityToken(userInfo.Employee_Name, userInfo.Employee_ID.ToString());
+
+            if (authResult == null || !authResult.Success)
+                return StatusCode(500, new { Status = false, Message = "Token generation failed" });
+
+            // ✅ Set SSO cookie for subdomains
+            Response.Cookies.Append("AuthToken", authResult.Token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None, // must be None for cross subdomain
+                Domain = ".company.com",      // leading dot allows subdomains
+                Expires = DateTimeOffset.Now.AddHours(24)
+            });
+
+            Response.Cookies.Append("RefreshToken", authResult.RefreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Domain = ".company.com",
+                Expires = DateTimeOffset.Now.AddDays(7)
+            });
+
+            return Ok(new
+            {
+                Status = true,
+                Code = 200,
+                Message = "Successfully Logged In",
+                Data = authResult,
+                Info = userInfo
+            });
+        }
+
+
     }
 }

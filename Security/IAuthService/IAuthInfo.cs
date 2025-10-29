@@ -13,5 +13,7 @@ namespace TsrmWebApi.Security.IAuthService
         public Task<TokenResponseModel> RefreshAccessToken(string refreshToken, string userName, string userId);
 
         Task<P_EmployeeDetails?> GetUserLoginFull(string userName, string password, decimal projectId);
+
+        Task<UserDetailsFinal?> GetUserLoginFullHierarchy(string userName, string password);
     }
 }

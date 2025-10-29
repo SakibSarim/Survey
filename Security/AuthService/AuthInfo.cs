@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using TsrmWebApi.Models.DataModels;
 using TsrmWebApi.Security.Models.PresentationModels;
 using TsrmWebApi.Models.DataModels;
+using System.Text.Json;
 
 namespace TsrmWebApi.Security.AuthService
 {
@@ -279,6 +280,46 @@ namespace TsrmWebApi.Security.AuthService
             }
 
             return null;
+        }
+
+        public async Task<UserDetailsFinal?> GetUserLoginFullHierarchy(string userName, string password)
+        {
+            if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
+                return null;
+
+            UserDetailsFinal? user = null;
+
+            await using var connection = new OracleConnection(_ModelContext.Database.GetDbConnection().ConnectionString);
+            await connection.OpenAsync();
+
+            await using var cmd = new OracleCommand("PRC_WEB_USER_LOGIN_FULL_HIERARCHY_OPT", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.Add("p_empid", OracleDbType.Varchar2).Value = userName;
+            cmd.Parameters.Add("p_password", OracleDbType.Varchar2).Value = password;
+            cmd.Parameters.Add("p_cur", OracleDbType.RefCursor).Direction = ParameterDirection.Output;
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                string? usersRoleJson = reader["Users_Role"]?.ToString();
+
+                user = new UserDetailsFinal
+                {
+                    Employee_ID = reader["emp_id"] != DBNull.Value ? Convert.ToInt32(reader["emp_id"]) : 0,
+                    Employee_Code = reader["emp_no"]?.ToString() ?? string.Empty,
+                    Employee_Name = reader["full_name"]?.ToString() ?? string.Empty,
+                    Unit_ID = reader["comp_id"] != DBNull.Value ? Convert.ToInt32(reader["comp_id"]) : 0,
+                    Users_Role = string.IsNullOrEmpty(usersRoleJson)
+                        ? new List<ProjectRoleFinal>()
+                        : JsonSerializer.Deserialize<List<ProjectRoleFinal>>(usersRoleJson)
+                };
+            }
+
+            return user;
         }
     }
 }
